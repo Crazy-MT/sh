@@ -19,18 +19,16 @@ done
 if 
     [[ "$var" != "exit" ]]
 then
-    mkdir ~/screen_from_phone
+    mkdir -p ~/screen_from_phone
     cd ~/screen_from_phone
     echo "输入文件名"
     read name
-    adb -s $var shell screencap -p /sdcard/$name.png 
-    adb -s $var pull /sdcard/$name.png
-    open .
-    open $name.png
-    ftc $name.png
+    adb -s "$var" shell screencap -p "/sdcard/$name.png"
+    adb -s "$var" pull "/sdcard/$name.png"
+    osascript -e 'on run argv' -e 'set the clipboard to (read (POSIX file (item 1 of argv)) as «class PNGf»)' -e 'end run' "$PWD/$name.png"
+    echo "已复制到系统剪切板: $PWD/$name.png"
     cd -
 
     #read -p "adb -s $var " cmd
     #adb -s $var $cmd
 fi
-
