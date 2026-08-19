@@ -1,4 +1,11 @@
 #!/bin/bash
+keep_source=0
+case "${1:-}" in
+    -k|--keep) keep_source=1 ;;
+    "") ;;
+    *) echo "Usage: $0 [-k|--keep]" >&2; exit 2 ;;
+esac
+
 PS3="please select a device :"
 array=($(adb devices | grep ".device$"))
 i=0
@@ -25,8 +32,15 @@ then
     read name
     adb -s "$var" shell screencap -p "/sdcard/$name.png"
     adb -s "$var" pull "/sdcard/$name.png"
-    osascript -e 'on run argv' -e 'set the clipboard to (read (POSIX file (item 1 of argv)) as «class PNGf»)' -e 'end run' "$PWD/$name.png"
-    echo "已复制到系统剪切板: $PWD/$name.png"
+    if osascript -e 'on run argv' -e 'set the clipboard to (read (POSIX file (item 1 of argv)) as «class PNGf»)' -e 'end run' "$PWD/$name.png"; then
+        if [[ "$keep_source" -eq 0 ]]; then
+            rm "$PWD/$name.png"
+            adb -s "$var" shell rm -f "/sdcard/$name.png"
+            echo "已复制到系统剪切板并删除源文件"
+        else
+            echo "已复制到系统剪切板并保留源文件: $PWD/$name.png"
+        fi
+    fi
     cd -
 
     #read -p "adb -s $var " cmd
