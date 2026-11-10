@@ -13,6 +13,7 @@ set -euo pipefail
 
 if [[ "${1:-}" == "devices" ]]; then
     printf 'List of devices attached\nabc\tdevice\n'
+    if [[ ${TEST_MULTIPLE:-0} == 1 ]]; then printf 'def\tdevice\n'; fi
     exit 0
 fi
 
@@ -43,8 +44,9 @@ chmod +x "$TMP/bin/osascript"
 run_case() {
     local args="$1"
     local name="$2"
+    local multiple="$3"
 
-    HOME="$TMP/home" PATH="$TMP/bin:$PATH" TEST_REMOTE="$TMP/remote" TEST_REMOTE_RM="$TMP/remote_rm" \
+    HOME="$TMP/home" PATH="$TMP/bin:$PATH" TEST_REMOTE="$TMP/remote" TEST_REMOTE_RM="$TMP/remote_rm" TEST_MULTIPLE="$multiple" \
         bash "$ROOT/screencap.sh" $args <<<"1
 $name
 " >/dev/null
@@ -52,11 +54,25 @@ $name
 
 mkdir -p "$TMP/home"
 : >"$TMP/remote_rm"
-run_case "" "delete_me"
+run_case "" "delete_me" 1
 test ! -e "$TMP/home/screen_from_phone/delete_me.png"
 grep -qx '/sdcard/delete_me.png' "$TMP/remote_rm"
 
 : >"$TMP/remote_rm"
-run_case "--keep" "keep_me"
+run_case "--keep" "keep_me" 1
 test -e "$TMP/home/screen_from_phone/keep_me.png"
+test ! -s "$TMP/remote_rm"
+
+: >"$TMP/remote_rm"
+run_case "" "" 0
+remote=$(cat "$TMP/remote")
+[[ "$remote" == /sdcard/screencap_*.png ]]
+grep -Fxq "$remote" "$TMP/remote_rm"
+test ! -e "$TMP/home/screen_from_phone/$(basename "$remote")"
+
+: >"$TMP/remote_rm"
+run_case "--keep" "" 0
+remote=$(cat "$TMP/remote")
+[[ "$remote" == /sdcard/screencap_*.png ]]
+test -e "$TMP/home/screen_from_phone/$(basename "$remote")"
 test ! -s "$TMP/remote_rm"

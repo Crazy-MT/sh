@@ -18,18 +18,26 @@ while [ "$i" -lt "$length" ];do
     fi
     ((i++))
 done
-((length++))
-array[$length]=exit
-select var in "${array[@]}" ;do
-    break
-done
+if [[ ${#array[@]} -eq 1 ]]; then
+    var="${array[0]}"
+else
+    ((length++))
+    array[$length]=exit
+    select var in "${array[@]}" ;do
+        break
+    done
+fi
 if 
     [[ "$var" != "exit" ]]
 then
     mkdir -p ~/screen_from_phone
     cd ~/screen_from_phone
-    echo "输入文件名"
-    read name
+    if [[ ${#array[@]} -eq 1 ]]; then
+        name="screencap_$(date +%Y%m%d_%H%M%S)_${RANDOM}_${RANDOM}"
+    else
+        echo "输入文件名"
+        read -r name
+    fi
     adb -s "$var" shell screencap -p "/sdcard/$name.png"
     adb -s "$var" pull "/sdcard/$name.png"
     if osascript -e 'on run argv' -e 'set the clipboard to (read (POSIX file (item 1 of argv)) as «class PNGf»)' -e 'end run' "$PWD/$name.png"; then
